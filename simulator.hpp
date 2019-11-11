@@ -6,8 +6,8 @@
 class simulator
 {
 public:
-    void run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t reg_lo, uint32_t reg_hi, bool& delay,std::vector<uint32_t>& dmem);
-    void R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, int rs, int rt, int rd, uint32_t reg_lo, uint32_t reg_hi, bool& delay);
+    void run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay,std::vector<uint32_t>& dmem);
+    void R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, int rs, int rt, int rd, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay);
 
 private:
     void add(int rd, int rs, int rt, std::vector<uint32_t> &reg);
@@ -32,8 +32,8 @@ private:
     void bltz(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay);
     void bltzal(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay);
     void bne(int rt, int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay);
-    void div(int rt, int rs, uint32_t reg_lo, uint32_t reg_hi, std::vector<uint32_t> &reg);
-    void divu(int rt, int rs, uint32_t reg_lo, uint32_t reg_hi, std::vector<uint32_t> &reg);
+    void div(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg);
+    void divu(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg);
 
     void lb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint32_t>& dmem);
     void sb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint32_t>& dmem);

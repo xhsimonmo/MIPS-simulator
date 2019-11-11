@@ -13,7 +13,7 @@
 #define ADDR_GETC 0x30000000
 #define ADDR_PUTC 0x30000004
 
-void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t reg_lo, uint32_t reg_hi, bool& delay,std::vector<uint32_t>& dmem)
+void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay,std::vector<uint32_t>& dmem)
 {
     int rs = ((instruction << 6) >> 27);
     //std::cout << "rs = " << rs <<"with current value "<< reg[rs]<<'\n';
@@ -141,7 +141,7 @@ void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &r
     }
 }
 
-void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, int rs, int rt, int rd, uint32_t reg_lo, uint32_t reg_hi, bool& delay)
+void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, int rs, int rt, int rd, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay)
 {
     switch ((instruction << 26)>>26)
     {
@@ -155,7 +155,7 @@ void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t>
             and_bits(rd, rs, rt, reg);
             break;
        case 0b011010:
-           div( rt,  rs,  reg_lo, reg_hi, reg);
+           div( rt, rs, reg_lo, reg_hi, reg);
            break;
        case 0b011011:
            divu(rt,  rs,  reg_lo, reg_hi, reg);
@@ -269,7 +269,6 @@ void simulator::add(int rd, int rs, int rt, std::vector<uint32_t> &reg)//rs, rt 
 
 void simulator::addi(int rt, int rs, int32_t sign_imm,std::vector<uint32_t> &reg)
 {
-
     //rt = rs + sign_imm
     int32_t reg_rs = reg[rs];
     int32_t temp = reg_rs + sign_imm;
@@ -279,14 +278,12 @@ void simulator::addi(int rt, int rs, int32_t sign_imm,std::vector<uint32_t> &reg
         std::exit (-10);
     }
     reg[rt] = temp;
-
 }
 
 void simulator::addu(int rd, int rs, int rt, std::vector<uint32_t> &reg)
 {
   //rd = rs + rt (unsigned)
   // don't need to check overflow
-
   reg[rd] = reg[rs] + reg[rt];
 }
 
@@ -294,11 +291,9 @@ void simulator::addiu(int rt, int rs,uint32_t imm, std::vector<uint32_t> &reg)
 {  // rt = rs <- imm
   //sign extend immediate
   // don't need to check overflow
-
   uint32_t reg_rs = reg[rs];//unsigned
   uint32_t temp = reg_rs + imm;
   reg[rt] = temp;
-
 }
 
 
@@ -529,16 +524,16 @@ void simulator::bne(int rt, int rs, uint32_t sign_imm, uint32_t& pc, std::vector
     }
 }
 
-void simulator::div(int rt, int rs, uint32_t reg_lo, uint32_t reg_hi, std::vector<uint32_t> &reg)
+void simulator::div(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg)
 {
-    if (reg[rs] != 0)
+    if (reg[rt] != 0)
     {
         reg_lo = reg[rs]/reg[rt];
         reg_hi = reg[rs]%reg[rt];
     }
 }
 
-void simulator::divu(int rt, int rs, uint32_t reg_lo, uint32_t reg_hi, std::vector<uint32_t> &reg)
+void simulator::divu(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg)
 {
     if (reg[rs] != 0)
     {
@@ -549,7 +544,7 @@ void simulator::divu(int rt, int rs, uint32_t reg_lo, uint32_t reg_hi, std::vect
 
 void simulator::lb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint32_t>& dmem)
 {
-  int base = 0;
+  uint32_t base = 0;
   base = base | reg[rs];
   int address = base + sign_imm;
   if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
@@ -585,7 +580,7 @@ void simulator::sb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, 
   if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
   {
   uint8_t byte = reg[rt] & 0xff;//only keep lowest 8 bits
-  dmem[(address - DMEM_OFFSET)/4] = byte;
+  dmem[(sign_imm + reg[rs] - DMEM_OFFSET)/4] = byte;
   }
   else{
     if(address == ADDR_PUTC)
