@@ -49,20 +49,21 @@ int main(int argc, char *argv[])
 
     uint32_t ADDR_GETC;
     uint32_t ADDR_PUTC;
-  std::vector<uint8_t> dmem(DMEM_LENGTH, 0); // initilise the length, also content to zero!
+  std::vector<uint32_t> dmem(DMEM_LENGTH, 0); // initilise the length, also content to zero!
 
   std::vector<uint32_t> reg(32,0);
     uint32_t reg_lo;
     uint32_t reg_hi;
 
-   reg[1] = 3;
-   reg[2] = 103;
-   reg[5] = 5;
-   reg[6] = 2;
-   reg[4] = 0x20000000;
-   reg[8] = 0x7f;
+//    reg[1] = 3;
+//    reg[2] = 3;
+//    reg[5] = 5;
+//    reg[6] = 2;
+//    reg[4] = 0x20000000;
+//    reg[8] = 20;
 
   uint32_t pc = IMEM_OFFSET; // let pc first point to first instruction in instruction memory
+
 
   simulator s;//set up class simulator;
 
@@ -84,7 +85,7 @@ int main(int argc, char *argv[])
                 instruction = instruction  << 8;
             }
         }//load char into 32 bit instruction
-        // std::cout << std::hex << instruction << '\n';
+
         s.run(instruction, pc, reg, reg_lo, reg_hi, delay, dmem);
 
         if(!delay)
@@ -98,12 +99,12 @@ int main(int argc, char *argv[])
 
     }
 
-   // for (int i = 0; i < 32; i++)
-   // {
-   //     std::cout << "Register " << i << " has value " << reg[i] << std::endl;
-   // }
-   // std::cout << "hi is " << reg_hi <<'\n';
-   // std::cout << "lo is " << reg_lo <<'\n';
+//    for (int i = 0; i < 32; i++)
+//    {
+//        std::cout << "Register " << i << " has value " << reg[i] << std::endl;
+//    }
+//    std::cout << "hi is " << reg_hi <<'\n';
+//    std::cout << "lo is " << reg_lo <<'\n';
 
 
     //finish: no more instruction or out of range

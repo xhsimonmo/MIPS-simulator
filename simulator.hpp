@@ -6,7 +6,7 @@
 class simulator
 {
 public:
-    void run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay,std::vector<uint8_t>& dmem);
+    void run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay,std::vector<uint32_t>& dmem);
     void R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, int rs, int rt, int rd, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay);
 
 private:
@@ -35,17 +35,8 @@ private:
     void div(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg);
     void divu(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg);
 
-    void lb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
-    void lbu(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
-    void lh(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
-    void lhu(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
-    void lw(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
-    void lwl(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
-    void lwr(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
-    void lui(int rt, uint32_t imm,std::vector<uint32_t> &reg);
-    void sb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
-    void sh(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
-    void sw(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem);
+    void lb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint32_t>& dmem);
+    void sb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint32_t>& dmem);
 
 
 };
