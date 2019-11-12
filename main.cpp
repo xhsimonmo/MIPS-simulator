@@ -111,7 +111,6 @@ int main(int argc, char *argv[])
     {
         pc = 0;//set pc to zero
         std::exit (reg[2] & 0xFF);//no more instructions; return code given by low 8-bits of register 2
-
     }
     else
     {

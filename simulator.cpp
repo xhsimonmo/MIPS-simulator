@@ -22,8 +22,10 @@ void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &r
     //std::cout << "rt = " << rt <<"with current value "<< reg[rt]<<'\n';
     int rd = ((instruction << 16) >> 27);
     //std::cout << "rd = " << rd <<"with current value "<< reg[rd]<<'\n';
+    int sa = ((instruction << 21) >> 27);
+
     uint32_t imm = instruction & 0b00000000000000001111111111111111; //32 bits immediate, 16 0 bits and 16 immediate bits
-    uint32_t address = ((instruction << 6 ) >> 6) & 0b00000011111111111111111111111111;
+    uint32_t address = ((instruction << 6 ) >> 6) & 0b0000001111111111111111111111111;
 
     int32_t sign_imm = ((instruction << 16) >> 31);
     if(sign_imm == 0)
@@ -41,7 +43,7 @@ void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &r
     {
         //R type
         case 0b000000:
-            R_type(instruction, pc, reg,  rs, rt, rd, reg_lo, reg_hi, delay);
+            R_type(instruction, pc, reg,  rs, rt, rd,sa, reg_lo, reg_hi, delay);
             break;
         //I type
         case 0b001000:
@@ -108,41 +110,40 @@ void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &r
        case 0b100110:
             lwr(rs,rt,sign_imm, reg,  dmem);
             break;
-
-//        case 0b001101:
-//            ori;
-//            break;
+       case 0b001101:
+           ori(rs, rt, imm, reg);
+           break;
        case 0b101000:
            sb(rs, rt,sign_imm, reg, dmem);
            break;
-//        case 0b001010:
-//            slti
-//            break;
-//        case 0b001011:
-//            sltiu
-//            break;
+       case 0b001010:
+           slti(rs,rt,sign_imm,reg);
+           break;
+       case 0b001011:
+           sltiu(rs,rt,imm,reg);
+           break;
        case 0b101001:
            sh(rs, rt,sign_imm, reg, dmem);
            break;
        case 0b101011:
            sw(rs, rt,sign_imm, reg, dmem);
            break;
-//        case 0b001110:
-//            xori
-//            break;
+       case 0b001110:
+           xori(rs,rt,imm,reg);
+           break;
         //J type
         case 0b000010:
-            j(rs, address, pc, delay);
+            j(address, pc, delay);
             break;
-//        case 0b000011:
-//            jal();
-//            break;
+       case 0b000011:
+           jal(address, pc, reg, delay);
+           break;
 
         std::exit(-12);//invalid instruction
     }
 }
 
-void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, int rs, int rt, int rd, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay)
+void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, int rs, int rt, int rd,int sa, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay)
 {
     switch ((instruction << 26)>>26)
     {
@@ -161,9 +162,9 @@ void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t>
        case 0b011011:
            divu(rt,  rs,  reg_lo, reg_hi, reg);
            break;
-//        case 0b001001:
-//            jalr
-//            break;
+       case 0b001001:
+           jalr(rs, rd, pc, reg, delay);
+           break;
         case 0b001000:
             jr( rs, pc, reg, delay);
             break;
@@ -191,30 +192,30 @@ void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t>
         case 0b100101:
             or_bits(rd, rs, rt, reg);
             break;
-//        case 0b000000:
-//            sll
-//            break;
-//        case 0b000100:
-//            sllv
-//            break;
-//        case 0b101010:
-//            slt
-//            break;
-//        case 0b101011:
-//            sltu
-//            break;
-//        case 0b000011:
-//            sra
-//            break;
-//        case 0b000111:
-//            srav
-//            break;
-//        case 0b000010:
-//            srl
-//            break;
-//        case 0b000110:
-//            srlv
-//            break;
+        case 0b000000:
+            sll(rt,rd,sa,reg);
+            break;
+       case 0b000100:
+           sllv(rd,rs,rt,reg);
+           break;
+       case 0b101010:
+           slt(rd,rs,rt,reg);
+           break;
+       case 0b101011:
+           sltu(rd,rs,rt,reg);
+           break;
+       case 0b000011:
+           sra(rt,rd,sa,reg);
+           break;
+       case 0b000111:
+           srav(rd,rs,rt,reg);
+           break;
+       case 0b000010:
+           srl(rt,rd,sa,reg);
+           break;
+       case 0b000110:
+           srlv(rd,rs,rt,reg);
+           break;
 //        case 0b100010:
 //            sub
 //            break;
@@ -311,11 +312,12 @@ void simulator::sub(int rd, int rs, int rt, std::vector<uint32_t> &reg)
     reg[rd] = temp;
 }
 
-void simulator::j(int rs, uint32_t address,uint32_t& pc, bool& delay) // pc = R[rs], need branch delay
-{   address = address << 2;
+void simulator::j(uint32_t address,uint32_t& pc, bool& delay)
+{
+    address = address << 2;
     address = address & 0b00001111111111111111111111111100;//to ensure cpp doesn't do weird things to sign extend my variable
-    uint32_t temp_pc = (pc & 0xf0000000) | (address << 2); //the low-order two bits become "00",four bits come from the high-order four bits in the PC. then concadate them.
-    if(!delay)//first enter jr
+    uint32_t temp_pc = ((pc+4) & 0xF0000000) | address; //the low-order two bits become "00",four bits come from the high-order four bits in the PC. then concadate them.
+    if(!delay)//first enter j
     {
       pc = pc + 8;
         delay = true;
@@ -326,6 +328,40 @@ void simulator::j(int rs, uint32_t address,uint32_t& pc, bool& delay) // pc = R[
       delay = false;//set bool back
     }
 }
+
+void simulator::jal(uint32_t address,uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
+{
+  address = address << 2;
+  address = address & 0b00001111111111111111111111111100;//to ensure cpp doesn't do weird things to sign extend my variable
+  uint32_t temp_pc = ((pc+4) & 0xF0000000) | address; //the low-order two bits become "00",four bits come from the high-order four bits in the PC. then concadate them.
+  if(!delay)//first enter j
+  {
+    reg[31] = pc+8;
+    pc = pc + 8;
+      delay = true;
+  }
+  else
+  {
+    pc = temp_pc - 4; // simply jump PC to address in rs reg
+    delay = false;//set bool back
+  }
+}
+
+void simulator::jalr(int rs, int rd,uint32_t& pc, std::vector<uint32_t> &reg, bool& delay )
+{
+  if(!delay)//first enter j
+  {
+    reg[rd] = pc+8;
+    pc = pc + 8;
+    delay = true;
+  }
+  else
+  {
+    pc = reg[rs] - 4; // simply jump PC to address in rs reg
+    delay = false;//set bool back
+  }
+}
+
 
 void simulator::jr(int rs, uint32_t& pc,std::vector<uint32_t> &reg, bool& delay)
 {
@@ -342,6 +378,8 @@ void simulator::jr(int rs, uint32_t& pc,std::vector<uint32_t> &reg, bool& delay)
   }
 }
 
+
+
 void simulator::and_bits(int rd, int rs, int rt, std::vector<uint32_t> &reg)
 {
     //rd = rs AND rt
@@ -357,6 +395,16 @@ void simulator::or_bits(int rd, int rs, int rt, std::vector<uint32_t> &reg)
 {
     //rd = rs OR rt
     reg[rd] = reg[rs] | reg[rt];
+}
+
+void simulator::ori(int rs, int rt, uint32_t imm, std::vector<uint32_t> &reg)
+{
+  reg[rt] = reg[rs] | imm;
+}
+
+void simulator::xori(int rs, int rt, uint32_t imm, std::vector<uint32_t> &reg)
+{
+  reg[rt] = reg[rs] ^ imm;
 }
 
 void simulator::beq(int rt, int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
@@ -399,10 +447,7 @@ void simulator::bgez(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32
 
 void simulator::bgezal(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
 {
-    if (rs == 31)
-    {
-        std::exit(-11);//store return address in R31
-    }//喵喵喵
+
     int32_t temp_pc = pc;
     temp_pc += (sign_imm << 2);
     reg[31] = pc + 8;
@@ -482,10 +527,7 @@ void simulator::bltz(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32
 
 void simulator::bltzal(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
 {
-    if (rs == 31)
-    {
-        std::exit(-11);
-    }//喵喵喵
+
     int32_t temp_pc = pc;//store return address in R31
     temp_pc += (sign_imm << 2);
     reg[31] = pc + 8;
@@ -783,6 +825,29 @@ void simulator::sb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, 
   }
 }
 
+void simulator::slti(int rs,int rt,int32_t sign_imm,std::vector<uint32_t> &reg)
+{
+  int temp = reg[rs];//convert unsigned register value to signed
+  if(temp < sign_imm)
+  {
+    reg[rt] = 1;
+  }
+  else{
+    reg[rt] = 0;
+  }
+}
+
+void simulator::sltiu(int rs,int rt,uint32_t imm,std::vector<uint32_t> &reg)
+{
+  if(reg[rs] < imm)
+  {
+    reg[rt] = 1;
+  }
+  else{
+    reg[rt] = 0;
+  }
+}
+
 void simulator::sh(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
 {
   int base = 0;
@@ -833,4 +898,128 @@ void simulator::sw(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, 
       std::exit(-11);
     }
   }
+}
+
+void simulator::sll(int rt,int rd,int sa, std::vector<uint32_t> &reg)
+{
+  uint32_t tmp = reg[rt];
+  tmp = tmp << sa;
+  reg[rd] = tmp;
+}
+
+void simulator::sllv(int rd,int rs,int rt, std::vector<uint32_t> &reg)
+{
+  uint32_t shift_amount = reg[rs];
+  shift_amount = shift_amount & 0x0000001F;//extract lower 5 bits
+  uint32_t tmp = reg[rt];
+  tmp = tmp << shift_amount;
+  reg[rd] = tmp;
+}
+
+void simulator::slt(int rd, int rs, int rt, std::vector<uint32_t> &reg)
+{
+  int tmp_rs = reg[rs], tmp_rt = reg[rt];
+  if(tmp_rs < tmp_rt)
+  {
+    reg[rd] = 1;
+  }
+  else{
+    reg[rd] = 0;
+  }
+}
+
+void simulator::sltu(int rd, int rs, int rt, std::vector<uint32_t> &reg)
+{
+  if(reg[rs] < reg[rt])
+  {
+    reg[rd] = 1;
+  }
+  else{
+    reg[rd] = 0;
+  }
+}
+
+void simulator::sra(int rt,int rd,int sa, std::vector<uint32_t> &reg)
+{
+  signed int tmp = reg[rt];//make sure this is signed value
+  tmp = tmp >> sa;//should sign extend
+  reg[rd] = tmp;
+}
+
+void simulator::srav(int rd,int rs,int rt, std::vector<uint32_t> &reg)
+{  //rd <- rt>>rs
+  uint32_t shift_amount = reg[rs];
+  shift_amount = shift_amount & 0x0000001F;//extract lower 5 bits
+  int tmp = 0;
+  tmp = tmp | reg[rt];//load exact bit into tmp
+  tmp = tmp >> shift_amount;//should be signed extended
+  reg[rd] = tmp | 0;
+}
+
+void simulator::srl(int rt,int rd,int sa, std::vector<uint32_t> &reg)
+{
+  uint32_t tmp = reg[rt] >> sa;// unsigned type, extend right will be 0 extended
+  reg[rd] = tmp;
+}
+
+void simulator::srlv(int rd,int rs,int rt, std::vector<uint32_t> &reg)
+{  //rd <- rt>>rs
+  uint32_t shift_amount = reg[rs];
+  shift_amount = shift_amount & 0x0000001F;//extract lower 5 bits
+  uint32_t tmp = reg[rt];
+  tmp = tmp >> shift_amount;//should be signed extended
+  reg[rd] = tmp;
+}
+
+void simulator::mfhi(int rd, std::vector<uint32_t> &reg, uint32_t &reg_hi)
+{
+    reg[rd] = reg_hi;
+}
+
+void simulator::mflo(int rd, std::vector<uint32_t> &reg, uint32_t &reg_lo)
+{
+    reg[rd] = reg_lo;
+}
+
+void simulator::mthi(int rd, std::vector<uint32_t> &reg, uint32_t &reg_hi)
+{
+    reg_hi = reg[rd];
+}
+
+void simulator::mtlo(int rd, std::vector<uint32_t> &reg, uint32_t &reg_lo)
+{
+    reg_lo = reg[rd];
+}
+
+void simulator::mult(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg)
+{
+    int64_t temp_rt = reg[rt];
+    int64_t temp_rs = reg[rs];
+    int64_t temp = temp_rt * temp_rs;
+    reg_lo = temp & 0xFFFFFFFF;
+    reg_hi = (temp & 0xFFFFFFFF00000000) >> 32;
+}
+
+void simulator::multu(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg)
+{
+    uint64_t temp_rt = reg[rt];
+    uint64_t temp_rs = reg[rs];
+    uint64_t temp = temp_rt * temp_rs;
+    reg_lo = temp & 0xFFFFFFFF;
+    reg_hi = (temp & 0xFFFFFFFF00000000) >> 32;
+}
+
+void simulator::nor(int rd, int rs, int rt, std::vector<uint32_t> &reg)
+{
+    reg[rd] = ~(reg[rs] | reg[rt]);
+}
+
+void simulator::subu(int rd, int rs, int rt, std::vector<uint32_t> &reg)
+{
+    reg[rd] = reg[rs] - reg[rt];
+}
+
+void simulator::xor_bits(int rd, int rs, int rt, std::vector<uint32_t> &reg)
+{
+    reg[rd] = (reg[rs] ^ reg[rt]);
 }
