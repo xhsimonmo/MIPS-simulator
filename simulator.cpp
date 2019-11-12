@@ -3,6 +3,7 @@
 #include <math.h>
 #include <fstream>
 #include <vector>
+#include <bitset>
 
 #include "simulator.hpp"
 
@@ -13,7 +14,7 @@
 #define ADDR_GETC 0x30000000
 #define ADDR_PUTC 0x30000004
 
-void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay,std::vector<uint32_t>& dmem)
+void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay,std::vector<uint8_t>& dmem)
 {
     int rs = ((instruction << 6) >> 27);
     //std::cout << "rs = " << rs <<"with current value "<< reg[rs]<<'\n';
@@ -86,33 +87,33 @@ void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &r
        case 0b100000:
            lb(rs, rt,sign_imm, reg, dmem);
            break;
-//        case 0b100100:
-//            lbu
-//            break;
-//        case 0b100001:
-//            lh
-//            break;
-//        case 0b100101:
-//            lhu
-//            break;
-//        case 0b001111
-//             lui
-//           break;
-//        case 0b100011:
-//            lw
-//            break;
-//        case 0b100010
-//             lwl
-//             break;
-//        case 0b100110
-//             lwr
-//             break;
+        case 0b100100:
+           lbu(rs,rt,sign_imm, reg,  dmem);
+           break;
+       case 0b100001:
+           lh(rs,rt,sign_imm, reg,  dmem);
+           break;
+       case 0b100101:
+           lhu(rs,rt,sign_imm, reg,  dmem);
+           break;
+       case 0b001111:
+           lui(rt,imm,reg);
+           break;
+       case 0b100011:
+           lw(rs,rt,sign_imm, reg,  dmem);
+           break;
+       case 0b100010:
+            lwl(rs,rt,sign_imm, reg,  dmem);
+            break;
+       case 0b100110:
+            lwr(rs,rt,sign_imm, reg,  dmem);
+            break;
 
 //        case 0b001101:
 //            ori;
 //            break;
        case 0b101000:
-           sb( rs, rt,sign_imm, reg, dmem);
+           sb(rs, rt,sign_imm, reg, dmem);
            break;
 //        case 0b001010:
 //            slti
@@ -120,12 +121,12 @@ void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &r
 //        case 0b001011:
 //            sltiu
 //            break;
-//        case 0b101001:
-//            sh
-//            break;
-//        case 0b101011:
-//            sw
-//            break;
+       case 0b101001:
+           sh(rs, rt,sign_imm, reg, dmem);
+           break;
+       case 0b101011:
+           sw(rs, rt,sign_imm, reg, dmem);
+           break;
 //        case 0b001110:
 //            xori
 //            break;
@@ -398,6 +399,10 @@ void simulator::bgez(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32
 
 void simulator::bgezal(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
 {
+    if (rs == 31)
+    {
+        std::exit(-11);//store return address in R31
+    }//喵喵喵
     int32_t temp_pc = pc;
     temp_pc += (sign_imm << 2);
     reg[31] = pc + 8;
@@ -477,6 +482,10 @@ void simulator::bltz(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32
 
 void simulator::bltzal(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
 {
+    if (rs == 31)
+    {
+        std::exit(-11);
+    }//喵喵喵
     int32_t temp_pc = pc;//store return address in R31
     temp_pc += (sign_imm << 2);
     reg[31] = pc + 8;
@@ -534,29 +543,36 @@ void simulator::divu(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::ve
     }
 }
 
-void simulator::lb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint32_t>& dmem)
+void simulator::lb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
 {
   uint32_t base = 0;
   base = base | reg[rs];
   int address = base + sign_imm;
+  //std::cout << std::hex<<address << '\n';
   if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
   {
-    //int word = dmem[(address - DMEM_OFFSET) / 4];
-    int word = (( dmem[(address - DMEM_OFFSET) / 4] << 16 ) >> 31);
-    if(word == 0)
+    uint32_t word = ((dmem[address - DMEM_OFFSET] << 24)>>24);
+    //std::cout << "the first word is " << std::hex << word<<'\n';
+    uint8_t byte = (dmem[address - DMEM_OFFSET] >> 7);
+
+    //std::cout << " the byte in lb is "<< std::bitset<8>(byte) << '\n';
+
+    if(byte == 0)
     {
-      word = dmem[(address - DMEM_OFFSET) / 4] & 0b00000000000000001111111111111111;//upper 16 bits 0s
+      word = word & 0x000000FF;//upper 24 bits 0s
     }
     else
     {
-      word = dmem[(address - DMEM_OFFSET) / 4] | 0b11111111111111110000000000000000;//upper 16 bits 1s
+      word = word | 0xFFFFFF00;//upper 24 bits 1s
     }
-
+    //std::cout << "the word to load in lb is " << std::hex << word <<'\n';
     reg[rt] = word;//load content in data memory to register. potential bug in sign/unsign convert?
   }
   else{
+
     if(address == ADDR_GETC){
       reg[rt] = get_char();
+    //  std::cout << "register " << rt <<" is "<< reg[rt] <<'\n';
     }
     else{
       std::exit(-11);//out of range of data mem
@@ -564,15 +580,249 @@ void simulator::lb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, 
   }
 }
 
-void simulator::sb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint32_t>& dmem)
+void simulator::lbu(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
+{
+  uint32_t base = 0;
+  base = base | reg[rs];
+  int address = base + sign_imm;
+  //std::cout << std::hex<<address << '\n';
+  if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
+  {
+    uint32_t word = ((dmem[address - DMEM_OFFSET] <<24)>>24);
+    word = word & 0x000000FF;//zero extend
+    //std::cout << "the word to load in lbu is " << std::hex << word <<'\n';
+    reg[rt] = word;//load content in data memory to register. potential bug in sign/unsign convert?
+  }
+  else{
+    if(address == ADDR_GETC){
+      reg[rt] = get_char();
+      //std::cout << "register " << rt <<" is "<< reg[rt] <<'\n';
+    }
+    else{
+      std::exit(-11);//out of range of data mem
+    }
+  }
+}
+
+void simulator::lh(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
+{ //喵喵喵 restriction: the least significant bit of the address must be zero! why????????????
+  uint32_t base = 0;
+  base = base | reg[rs];
+  int address = base + sign_imm;
+  //std::cout << std::hex<<address << '\n';
+  if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
+  {
+    uint32_t word1 = ((dmem[address - DMEM_OFFSET] << 24)>>16);
+    word1 = word1 & 0x0000FF00;
+    uint32_t word2 = ((dmem[address - DMEM_OFFSET + 1] << 24)>>24);
+    word2 = word2 & 0x000000FF;
+    uint32_t word = word1 | word2;
+    uint8_t byte = (dmem[address - DMEM_OFFSET] >> 7);
+    if(byte == 0)
+    {
+      word = word & 0x0000FFFF;//upper 24 bits 0s
+    }
+    else
+    {
+      word = word | 0xFFFF0000;//upper 24 bits 1s
+    }
+    //std::cout << "the word to load in lh is " << std::hex << word <<'\n';
+    reg[rt] = word;//load content in data memory to register. potential bug in sign/unsign convert?
+  }
+  else{
+
+    if(address == ADDR_GETC){
+      reg[rt] = get_char();
+      //std::cout << "register " << rt <<" after calling getchar is "<< reg[rt] <<'\n';
+    }
+    else{
+      std::exit(-11);//out of range of data mem
+    }
+  }
+}
+
+void simulator::lhu(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
+{ //喵喵喵 restriction: the least significant bit of the address must be zero! why????????????
+  uint32_t base = 0;
+  base = base | reg[rs];
+  int address = base + sign_imm;
+  //std::cout << std::hex<<address << '\n';
+  if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
+  {
+    uint32_t word1 = ((dmem[address - DMEM_OFFSET] << 24)>>16);
+    word1 = word1 & 0x0000FF00;
+    uint32_t word2 = ((dmem[address - DMEM_OFFSET + 1] << 24)>>24);
+    word2 = word2 & 0x000000FF;
+    uint32_t word = word1 | word2;
+    //std::cout << "the word to load in lh is " << std::hex << word <<'\n';
+    reg[rt] = word;//load content in data memory to register. potential bug in sign/unsign convert?
+  }
+  else{
+
+    if(address == ADDR_GETC){
+      reg[rt] = get_char();
+      //std::cout << "register " << rt <<" after calling getchar is "<< reg[rt] <<'\n';
+    }
+    else{
+      std::exit(-11);//out of range of data mem
+    }
+  }
+}
+
+
+void simulator::lw(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
+{
+  uint32_t base = 0;
+  base = base | reg[rs];
+  int address = base + sign_imm;
+  //std::cout << std::hex<<address << '\n';
+  if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
+  {
+    uint32_t word1 = dmem[address - DMEM_OFFSET] << 24;
+    word1 = word1 & 0xFF000000;
+    uint32_t word2 = ((dmem[address - DMEM_OFFSET + 1] << 24)>>8);
+    word2 = word2 & 0x00FF0000;
+    uint32_t word3 = ((dmem[address - DMEM_OFFSET + 2] << 24)>>16);
+    word3 = word3 & 0x0000FF00;
+    uint32_t word4 = ((dmem[address - DMEM_OFFSET + 3] << 24)>>24);
+    word4 = word4 & 0x000000FF;
+    uint32_t word = word1 | word2 | word3 | word4;
+    //std::cout << "the word to load in lw is " << std::hex << word <<'\n';
+    reg[rt] = word;//load content in data memory to register. potential bug in sign/unsign convert?
+  }
+  else{
+    if(address == ADDR_GETC){
+      reg[rt] = get_char();
+      //std::cout << "register " << rt <<" is "<< reg[rt] <<'\n';
+    }
+    else{
+      std::exit(-11);//out of range of data mem
+    }
+  }
+}
+
+void simulator::lwl(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
+{
+  uint32_t base = 0;
+  base = base | reg[rs];
+  int address = base + sign_imm;
+  //std::cout << std::hex<<address << '\n';
+  if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
+  {
+    uint32_t word1 = dmem[address - DMEM_OFFSET] << 24;
+    word1 = word1 & 0xFF000000;
+    uint32_t word2 = ((dmem[address - DMEM_OFFSET + 1] << 24)>>8);
+    word2 = word2 & 0x00FF0000;
+    uint32_t word = word1 | word2;//the most significant half word
+    reg[rt] = reg[rt] & 0x0000FFFF;//set upper 16 bits to 0s
+    reg[rt] = word | reg[rt];//load content in data memory to register. potential bug in sign/unsign convert?
+  }
+  else{
+    if(address == ADDR_GETC){
+      reg[rt] = get_char();
+      //std::cout << "register " << rt <<" is "<< reg[rt] <<'\n';
+    }
+    else{
+      std::exit(-11);//out of range of data mem
+    }
+  }
+}
+
+void simulator::lwr(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
+{
+  uint32_t base = 0;
+  base = base | reg[rs];
+  int address = base + sign_imm;
+  //std::cout << std::hex<<address << '\n';
+  if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
+  {
+    uint32_t word1 = ((dmem[address - DMEM_OFFSET - 1] << 24)>>16);
+    word1 = word1 & 0x0000FF00;
+    uint32_t word2 = ((dmem[address - DMEM_OFFSET ] << 24)>>24);
+    word2 = word2 & 0x000000FF;
+    uint32_t word = word1 | word2;//the most significant half word
+    reg[rt] = reg[rt] & 0xFFFF0000;//set upper 16 bits to 0s
+    reg[rt] = word | reg[rt];//load content in data memory to register. potential bug in sign/unsign convert?
+  }
+  else{
+    if(address == ADDR_GETC){
+      reg[rt] = get_char();
+      //std::cout << "register " << rt <<" is "<< reg[rt] <<'\n';
+    }
+    else{
+      std::exit(-11);//out of range of data mem
+    }
+  }
+}
+
+
+void simulator::lui(int rt, uint32_t imm,std::vector<uint32_t> &reg)
+{
+  imm = (imm << 16) & 0xFFFF0000;
+  reg[rt] = imm;
+}
+
+void simulator::sb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
 {
   int base = 0;
   base = base | reg[rs];
   int address = base + sign_imm;
-  if(address >= DMEM_OFFSET and address <= DMEM_OFFSET + DMEM_LENGTH)
+  if((address >= DMEM_OFFSET) && (address <= DMEM_OFFSET + DMEM_LENGTH))
   {
-  uint8_t byte = reg[rt] & 0xff;//only keep lowest 8 bits
-  dmem[(sign_imm + reg[rs] - DMEM_OFFSET)/4] = byte;
+   uint8_t byte = reg[rt] & 0x000000FF;//only keep lowest 8 bits
+   dmem[address - DMEM_OFFSET] = byte;
+  }
+  else{
+    if(address == ADDR_PUTC)
+    {
+      putchar(reg[rt]);
+    }
+    else{
+      std::exit(-11);
+    }
+  }
+}
+
+void simulator::sh(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)
+{
+  int base = 0;
+  base = base | reg[rs];
+  int address = base + sign_imm;
+  if((address >= DMEM_OFFSET) && (address <= DMEM_OFFSET + DMEM_LENGTH))
+  {
+   uint32_t word = reg[rt];
+   uint8_t byte = word & 0x000000FF;//only keep lowest 8 bits
+   dmem[address - DMEM_OFFSET + 1] = byte;
+   byte = (word >> 8) & 0x000000FF;
+   dmem[address - DMEM_OFFSET] = byte;
+  }
+  else{
+    if(address == ADDR_PUTC)
+    {
+      putchar(reg[rt]);
+    }
+    else{
+      std::exit(-11);
+    }
+  }
+}
+
+void simulator::sw(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, std::vector<uint8_t>& dmem)//the lower order 2 bits have to be zero otherwise it is undefined
+{
+  int base = 0;
+  base = base | reg[rs];
+  int address = base + sign_imm;
+  if((address >= DMEM_OFFSET) && (address <= DMEM_OFFSET + DMEM_LENGTH))
+  {
+   uint32_t word = reg[rt];
+   uint8_t byte = word & 0x000000FF;//only keep lowest 8 bits
+   dmem[address - DMEM_OFFSET + 3] = byte;
+   byte = (word >> 8) & 0x000000FF;
+   dmem[address - DMEM_OFFSET + 2] = byte;
+   byte = (word >> 16) & 0x000000FF;
+   dmem[address - DMEM_OFFSET + 1] = byte;
+   byte = (word >> 24) & 0x000000FF;
+   dmem[address - DMEM_OFFSET] = byte;
   }
   else{
     if(address == ADDR_PUTC)
