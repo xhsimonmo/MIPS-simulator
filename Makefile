@@ -1,5 +1,5 @@
 simulator: simulator.o main.o
-	g++ simulator.o  main.o  -o mips_simulator
+	g++ simulator.o  main.o  -o bin/mips_simulator
 
 simulator.o: simulator.cpp simulator.hpp
 	g++ -c simulator.cpp
@@ -8,11 +8,11 @@ main.o: main.cpp
 	g++ -c main.cpp
 
 run:
-	./mips_simulator
+	./bin/mips_simulator test.bin
 #./prog.exe if Windows/Cygwin
 
 clean:
-	rm *.o prog
+	rm *.o bin/mips_simulator
 # rm *.o prog.exe if Windows/Cygwin
 
 #structure
