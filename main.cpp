@@ -52,15 +52,15 @@ int main(int argc, char *argv[])
   std::vector<uint8_t> dmem(DMEM_LENGTH, 0); // initilise the length, also content to zero!
 
   std::vector<uint32_t> reg(32,0);
-    uint32_t reg_lo;
-    uint32_t reg_hi;
+    uint32_t reg_lo = 0;
+    uint32_t reg_hi = 0;
 
-   reg[1] = 3;
-   reg[2] = 103;
-   reg[5] = 5;
-   reg[6] = 2;
-   reg[4] = 0x20000000;
-   reg[8] = 0x7f;
+//   reg[1] = 3;
+//   reg[2] = 103;
+//   reg[5] = 5;
+//   reg[6] = 2;
+//   reg[4] = 0x20000000;
+//   reg[8] = 0x7f;
 
   uint32_t pc = IMEM_OFFSET; // let pc first point to first instruction in instruction memory
 
@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
 
     while (pc < (IMEM_OFFSET + size_infile) && pc >= IMEM_OFFSET)
     {
+        std::cerr << "!!!!!!!!!!!!!!R1 & R0 HERE!!!!!!!!!!!!!!!"<< reg[2]  << " and " << reg[3] << std::endl;
         uint32_t instruction = 0;
         for (int i = 0; i < 4; i++)
         {
@@ -95,6 +96,8 @@ int main(int argc, char *argv[])
         {
           pc = pc - 4 ;//go back to execute branch or
         }
+        
+        std::cerr << " PC here has value: " << std::hex << pc << std::endl;
 
     }
 
@@ -107,19 +110,16 @@ int main(int argc, char *argv[])
 
 
     //finish: no more instruction or out of range
-    if (pc == IMEM_OFFSET + size_infile)
+    if (pc == IMEM_OFFSET + size_infile || pc == 0)
     {
         pc = 0;//set pc to zero
+        std::cerr << "entering exit place: " << reg[2] << std::endl;
         std::exit (reg[2] & 0xFF);//no more instructions; return code given by low 8-bits of register 2
+        std::cerr << "weird." << std::endl;
     }
     else
     {
         std::exit(-11);//pc try to access out of range
     }
-
-
-
-
-
 
 }

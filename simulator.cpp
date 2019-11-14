@@ -16,12 +16,13 @@
 
 void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay,std::vector<uint8_t>& dmem)
 {
+    
     int rs = ((instruction << 6) >> 27);
-    //std::cout << "rs = " << rs <<"with current value "<< reg[rs]<<'\n';
+//    std::cout << "rs = " << rs <<" with current value "<< reg[rs]<<'\n';
     int rt = ((instruction << 11) >> 27);
-    //std::cout << "rt = " << rt <<"with current value "<< reg[rt]<<'\n';
+//    std::cout << "rt = " << rt <<" with current value "<< reg[rt]<<'\n';
     int rd = ((instruction << 16) >> 27);
-    //std::cout << "rd = " << rd <<"with current value "<< reg[rd]<<'\n';
+//    std::cout << "rd = " << rd <<" with current value "<< reg[rd]<<'\n';
     int sa = ((instruction << 21) >> 27);
 
     uint32_t imm = instruction & 0b00000000000000001111111111111111; //32 bits immediate, 16 0 bits and 16 immediate bits
@@ -168,27 +169,27 @@ void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t>
         case 0b001000:
             jr( rs, pc, reg, delay);
             break;
-//        case 0b010000:
-//            mfhi
-//            break;
-//        case 0b010010:
-//            mflo
-//            break;
-//        case 0b010001:
-//            mthi
-//            break;
-//        case 0b010011:
-//            mtlo
-//            break;
-//        case 0b011000:
-//            mult
-//            break;
-//        case 0b011001:
-//            multu
-//            break;
-//        case 0b100111:
-//            nor
-//            break;
+        case 0b010000:
+            mfhi(rd, reg, reg_hi);
+            break;
+        case 0b010010:
+            mflo(rd, reg, reg_lo);
+            break;
+        case 0b010001:
+            mthi(rd, reg, reg_hi);
+            break;
+        case 0b010011:
+            mtlo(rd, reg, reg_lo);
+            break;
+        case 0b011000:
+            mult(rt, rs, reg_lo, reg_hi, reg);
+            break;
+        case 0b011001:
+            multu(rt, rs, reg_lo, reg_hi, reg);
+            break;
+        case 0b100111:
+            nor(rd, rs, rt, reg);
+            break;
         case 0b100101:
             or_bits(rd, rs, rt, reg);
             break;
@@ -216,15 +217,15 @@ void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t>
        case 0b000110:
            srlv(rd,rs,rt,reg);
            break;
-//        case 0b100010:
-//            sub
-//            break;
-//        case 0b100011:
-//            subu
-//            break;
-//        case 0b100110:
-//            xor
-//            break;
+       case 0b100010:
+           sub(rd, rs, rt, reg);
+           break;
+       case 0b100011:
+           subu(rd, rs, rt, reg);
+           break;
+       case 0b100110:
+           xor_bits(rd, rs, rt, reg);
+           break;
     }
 }
 
