@@ -1,4 +1,5 @@
 simulator: simulator.o main.o
+        mkdir -p bin
 	g++ simulator.o  main.o  -o bin/mips_simulator
 
 simulator.o: simulator.cpp simulator.hpp
