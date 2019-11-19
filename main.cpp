@@ -1,4 +1,4 @@
-#include <iostream>
+ #include <iostream>
 #include <string>
 #include <math.h>
 #include <iostream>
@@ -21,9 +21,9 @@ int main(int argc, char *argv[])
     std::exit (-21);// IO error (-21) : the simulator encountered an error reading/writing input/output
   }
 
-  std::vector<char> imem; //set up instruction memory
+  std::vector<char> imem (IMEM_LENGTH, 0); //set up instruction memory
 
-    imem.resize(IMEM_LENGTH);// bianry instruction memory is saved in byte address
+    // imem.resize(IMEM_LENGTH);// bianry instruction memory is saved in byte address
     std::streampos begin,end;
     std::streampos infile_size;
     std::ifstream infile (argv[1], std::ios::binary | std::ios::ate);
@@ -71,9 +71,9 @@ int main(int argc, char *argv[])
     //////////////////////STAFF ONLY         SIMULATOR RUNNING HERE!!!
     //execute instructions
 
-    while (pc < (IMEM_OFFSET + size_infile) && pc >= IMEM_OFFSET)
+    while (pc < (IMEM_OFFSET + size_infile + 4) && pc >= IMEM_OFFSET && pc < IMEM_LENGTH + IMEM_OFFSET) //in case theres a jump instruction at the end
     {
-        std::cerr << "!!!!!!!!!!!!!!R1 & R0 HERE!!!!!!!!!!!!!!!"<< reg[2]  << " and " << reg[3] << std::endl;
+        std::cerr << "R2 is " << reg[2]  << std::endl;
         uint32_t instruction = 0;
         for (int i = 0; i < 4; i++)
         {
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
             }
         }//load char into 32 bit instruction
          std::cerr << std::hex << instruction << '\n';
-        s.run(instruction, pc, reg, reg_lo, reg_hi, delay, dmem);
+        s.run(instruction, pc, reg, reg_lo, reg_hi, delay, dmem, imem);
 
         if(!delay)
         {
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
         {
           pc = pc - 4 ;//go back to execute branch or
         }
-        
+
         std::cerr << " PC here has value: " << std::hex << pc << std::endl;
 
     }
@@ -114,8 +114,8 @@ int main(int argc, char *argv[])
     {
         pc = 0;//set pc to zero
         std::cerr << "entering exit place: " << reg[2] << std::endl;
+        std::cout  << '\n';
         std::exit (reg[2] & 0xFF);//no more instructions; return code given by low 8-bits of register 2
-        std::cerr << "weird." << std::endl;
     }
     else
     {
