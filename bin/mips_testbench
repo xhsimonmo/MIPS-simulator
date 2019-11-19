@@ -1,0 +1,46 @@
+#!/bin/bash
+
+cat ./src/test.csv | while IFS="," read -r fileName instrName expRet stdin expOut outMes; do
+
+    result=Pass
+
+    #convert from MIPS to binary
+    #testing simulator here...
+
+    $1 src/genbinary/"$fileName.mips.bin"
+
+    retcode=$?
+
+    if [ ! -n "stdin" ];
+    then
+        echo "stdin here"
+    #convert stdin from hex to binary
+        stdout=$(echo $stdin | xxd -r -p)
+    fi
+
+    echo "retcode = $retcode"
+
+    #catch output from last command and pass it to another command
+    # stdout=$(!!)
+
+    if [ "$retcode" != "$expRet" ];
+    then
+        echo "retcode here is"
+        echo $retcode
+        Mes2="Expected retcode $expRet but get $retcode"
+        result=Fail
+    fi
+
+    if [ "$expOut" != "null" -a "$stdout" != "$expOut" ];
+    then
+        echo "stdout here"
+        Mes2="Expected cout $expRet but get $retcode"
+        result=Fail
+    fi
+
+    # outMes=${outMes//$'\r'/}
+
+    echo "$fileName,$instrName,$result,"hair_loss_therapy""
+    echo "$outMes"
+    echo "$Mes2"
+done
