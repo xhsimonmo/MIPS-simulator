@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
 //   reg[8] = 0x7f;
 
   uint32_t pc = IMEM_OFFSET; // let pc first point to first instruction in instruction memory
+  uint32_t tmp_pc;
 
   simulator s;//set up class simulator;
 
@@ -86,7 +87,8 @@ int main(int argc, char *argv[])
             }
         }//load char into 32 bit instruction
          std::cerr << std::hex << instruction << '\n';
-        s.run(instruction, pc, reg, reg_lo, reg_hi, delay, dmem, imem);
+         reg[0] = 0; //keep reg 0 const to 0 in every iteration
+        s.run(instruction, pc,tmp_pc, reg, reg_lo, reg_hi, delay, dmem, imem);
 
         if(!delay)
         {

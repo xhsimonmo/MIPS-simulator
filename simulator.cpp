@@ -14,7 +14,7 @@
 #define ADDR_GETC 0x30000000
 #define ADDR_PUTC 0x30000004
 
-void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay,std::vector<uint8_t>& dmem, std::vector<char>& imem)
+void simulator::run(uint32_t instruction, uint32_t &pc, uint32_t& tmp_pc, std::vector<uint32_t> &reg, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay,std::vector<uint8_t>& dmem, std::vector<char>& imem)
 {
 
 
@@ -45,7 +45,7 @@ void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &r
     {
         //R type
         case 0b000000:
-            R_type(instruction, pc, reg,  rs, rt, rd,sa, reg_lo, reg_hi, delay);
+            R_type(instruction, pc,tmp_pc, reg, rs, rt, rd,sa, reg_lo, reg_hi, delay);
             break;
         //I type
         case 0b001000:
@@ -58,35 +58,35 @@ void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &r
             andi( rt, rs, imm, reg);
             break;
         case 0b000100:
-            beq( rt,  rs,sign_imm,pc, reg,  delay);
+            beq( rt,  rs,sign_imm,pc,tmp_pc, reg, delay);
             break;
 
         case 0b000001: // can be either bgez,bgezal.bltz,bltzal,
           if(rt == 0b00001){
-            bgez( rs, sign_imm,  pc, reg, delay);
+            bgez( rs, sign_imm,  pc, tmp_pc,reg, delay);
             break;
           }
           if(rt == 0b10001){
-            bgezal(rs, sign_imm,  pc, reg, delay);
+            bgezal(rs, sign_imm,  pc,tmp_pc, reg, delay);
             break;
           }
           if(rt == 0b00000){
-            bltz(rs, sign_imm,  pc, reg, delay);
+            bltz(rs, sign_imm,  pc,tmp_pc, reg, delay);
             break;
           }
           if(rt == 0b10000){
-              bltzal(rs, sign_imm,  pc, reg, delay);
+              bltzal(rs, sign_imm,  pc,tmp_pc, reg, delay);
             break;
           }
 
        case 0b000111:
-           bgtz(rs, sign_imm,  pc, reg, delay);
+           bgtz(rs, sign_imm,  pc,tmp_pc, reg, delay);
            break;
        case 0b000110:
-           blez(rs, sign_imm,  pc, reg, delay);
+           blez(rs, sign_imm,  pc,tmp_pc, reg, delay);
            break;
        case 0b000101:
-           bne( rt,  rs, sign_imm,  pc,reg,  delay);
+           bne( rt,  rs, sign_imm, pc,tmp_pc, reg,delay);
            break;
        case 0b100000:
            lb(rs, rt,sign_imm, reg, dmem, imem);
@@ -145,7 +145,7 @@ void simulator::run(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &r
     }
 }
 
-void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t> &reg, int rs, int rt, int rd,int sa, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay)
+void simulator::R_type(uint32_t instruction, uint32_t &pc, uint32_t& tmp_pc, std::vector<uint32_t> &reg, int rs, int rt, int rd,int sa, uint32_t &reg_lo, uint32_t &reg_hi, bool& delay)
 {
     switch ((instruction << 26)>>26)
     {
@@ -159,16 +159,16 @@ void simulator::R_type(uint32_t instruction, uint32_t &pc, std::vector<uint32_t>
             and_bits(rd, rs, rt, reg);
             break;
        case 0b011010:
-           div( rt, rs, reg_lo, reg_hi, reg);
+            div_f(rt, rs, reg_lo, reg_hi, reg);
            break;
        case 0b011011:
-           divu(rt,  rs,  reg_lo, reg_hi, reg);
-           break;
+            divu(rt,  rs,  reg_lo, reg_hi, reg);
+            break;
        case 0b001001:
-           jalr(rs, rd, pc, reg, delay);
+           jalr(rs, rd, pc, tmp_pc, reg, delay);
            break;
         case 0b001000:
-            jr( rs, pc, reg, delay);
+            jr( rs, pc, tmp_pc, reg, delay);
             break;
         case 0b010000:
             mfhi(rd, reg, reg_hi);
@@ -342,7 +342,7 @@ void simulator::jal(uint32_t address,uint32_t& pc, std::vector<uint32_t> &reg, b
   {
     reg[31] = pc+8;
     pc = pc + 8;
-      delay = true;
+    delay = true;
   }
   else
   {
@@ -351,33 +351,35 @@ void simulator::jal(uint32_t address,uint32_t& pc, std::vector<uint32_t> &reg, b
   }
 }
 
-void simulator::jalr(int rs, int rd,uint32_t& pc, std::vector<uint32_t> &reg, bool& delay )
+void simulator::jalr(int rs, int rd,uint32_t& pc, uint32_t& tmp_pc,std::vector<uint32_t> &reg, bool& delay )
 {
   if(!delay)//first enter j
   {
+    uint32_t tmp_pc = reg[rs];//in case rs is changed in delay slot
     reg[rd] = pc+8;
     pc = pc + 8;
     delay = true;
   }
   else
   {
-    pc = reg[rs] - 4; // simply jump PC to address in rs reg
+    pc = tmp_pc - 4; // simply jump PC to address in rs reg
     delay = false;//set bool back
   }
 }
 
 
-void simulator::jr(int rs, uint32_t& pc,std::vector<uint32_t> &reg, bool& delay)
+void simulator::jr(int rs, uint32_t& pc,uint32_t& tmp_pc,std::vector<uint32_t> &reg, bool& delay)
 {
 
   if(!delay)//first enter jr
   {
+    uint32_t tmp_pc = reg[rs];//in case rs is changed in delay slot
     delay = true;
     pc = pc + 8; //
   }
   else
   {
-    pc = reg[rs] - 4; // simply jump PC to address in rs reg
+    pc = tmp_pc - 4; // simply jump PC to address in rs reg
     delay = false;//set bool back
   }
 }
@@ -411,167 +413,207 @@ void simulator::xori(int rs, int rt, uint32_t imm, std::vector<uint32_t> &reg)
   reg[rt] = reg[rs] ^ imm;
 }
 
-void simulator::beq(int rt, int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
+void simulator::beq(int rt, int rs, uint32_t sign_imm, uint32_t& pc, uint32_t& tmp_pc,  std::vector<uint32_t> &reg, bool& delay)
 {
-    int32_t temp_pc = pc + 4;
-    temp_pc += (sign_imm << 2);
     if(!delay)//first enter jr
     {
         delay = true;
-        pc = pc + 8;
-    }
-    else
-    {
-        delay = false;
         if (reg[rt] == reg[rs])
-        {pc = temp_pc - 4;}
+        {
+          sign_imm = (sign_imm << 2);
+          int sign_imm_int = sign_imm;
+          tmp_pc = pc + 4;
+          tmp_pc += sign_imm_int;
+        }
         else
-        {pc = pc + 4;}
-    }
-}
-
-void simulator::bgez(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
-{
-    int32_t temp_pc = pc + 4;
-    temp_pc += (sign_imm << 2);
-    if(!delay)
-    {
-        delay = true;
-        pc = pc + 8; //
-    }
-    else
-    {
-        delay = false;
-        if ((reg[rs]>>31) == 0)
-        {pc = temp_pc - 4;}
-        else
-        {pc = pc + 4;}
-    }
-}
-
-void simulator::bgezal(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
-{
-
-    int32_t temp_pc = pc + 4;
-    temp_pc += (sign_imm << 2);
-    reg[31] = pc + 8;
-    if(!delay)
-    {
-        delay = true;
+        {
+          tmp_pc = pc + 8;
+        }
         pc = pc + 8;
     }
     else
     {
         delay = false;
-        if ((reg[rs]>>31) == 0)
+        pc = tmp_pc - 4;
+    }
+}
+
+void simulator::bgez(int rs, uint32_t sign_imm, uint32_t& pc, uint32_t& tmp_pc, std::vector<uint32_t> &reg, bool& delay)
+{
+    if(!delay)
+    {
+        delay = true;
+        if((reg[rs] >> 31) == 0)//check msb
         {
-        pc = temp_pc - 4;
+          sign_imm = (sign_imm << 2);
+          int sign_imm_int = sign_imm;
+          tmp_pc = pc + 4;
+          tmp_pc += sign_imm_int;
         }
         else
-        {pc = pc + 4;}
-    }
-}
-
-void simulator::bgtz(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
-{
-    int32_t temp_pc = pc + 4;
-    temp_pc += (sign_imm << 2);
-    if(!delay)
-    {
-        delay = true;
+        {
+          tmp_pc = pc + 8;
+        }
         pc = pc + 8; //
     }
     else
     {
         delay = false;
-        if ((reg[rs]>>31) == 0 and reg[rs] > 0)
-        {pc = temp_pc - 4;}
-        else
-        {pc = pc + 4;}
+        pc = tmp_pc - 4;
     }
 }
 
-void simulator::blez(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
+void simulator::bgezal(int rs, uint32_t sign_imm, uint32_t& pc, uint32_t& tmp_pc, std::vector<uint32_t> &reg, bool& delay)
 {
-    int32_t temp_pc = pc + 4;
-    temp_pc += (sign_imm << 2);
     if(!delay)
     {
+        reg[31] = pc + 8;
         delay = true;
-        pc = pc + 8; //
-    }
-    else
-    {
-        delay = false;
-        if ((reg[rs]>>31) == 1 or reg[rs] == 0)
-        {pc = temp_pc - 4;}
+        if((reg[rs] >> 31) == 0)//check msb
+        {
+          sign_imm = (sign_imm << 2);
+          int sign_imm_int = sign_imm;
+          tmp_pc = pc + 4;
+          tmp_pc += sign_imm_int;
+        }
         else
-        {pc = pc + 4;}
-    }
-}
-
-void simulator::bltz(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
-{
-    int32_t temp_pc = pc + 4;
-    temp_pc += (sign_imm << 2);
-    if(!delay)
-    {
-        delay = true;
-        pc = pc + 8; //
-    }
-    else
-    {
-        delay = false;
-        if ((reg[rs]>>31) == 1)
-        {pc = temp_pc - 4;}
-        else
-        {pc = pc + 4;}
-    }
-}
-
-void simulator::bltzal(int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
-{
-
-    int32_t temp_pc = pc + 4;//store return address in R31
-    temp_pc += (sign_imm << 2);
-    reg[31] = pc + 8;
-    if(!delay)
-    {
-        delay = true;
+        {
+          tmp_pc = pc + 8;
+        }
         pc = pc + 8;
     }
     else
     {
         delay = false;
-        if ((reg[rs]>>31) == 1)
-        {
-        pc = temp_pc - 4;
-        }
-        else
-        {pc = pc + 4;}
+        pc = tmp_pc - 4;
     }
 }
 
-void simulator::bne(int rt, int rs, uint32_t sign_imm, uint32_t& pc, std::vector<uint32_t> &reg, bool& delay)
+void simulator::bgtz(int rs, uint32_t sign_imm, uint32_t& pc, uint32_t& tmp_pc, std::vector<uint32_t> &reg, bool& delay)
 {
-    int32_t temp_pc = pc + 4;
-    temp_pc += (sign_imm << 2);
+    if(!delay)
+    {
+        delay = true;
+        if((reg[rs] >> 31) == 0 and reg[rs] != 0)//check msb and not 0
+        {
+          sign_imm = (sign_imm << 2);
+          int sign_imm_int = sign_imm;
+          tmp_pc = pc + 4;
+          tmp_pc += sign_imm_int;
+        }
+        else
+        {
+          tmp_pc = pc + 8;
+        }
+        pc = pc + 8; //
+    }
+    else
+    {
+        delay = false;
+        pc = tmp_pc - 4;
+    }
+}
+
+void simulator::blez(int rs, uint32_t sign_imm, uint32_t& pc, uint32_t& tmp_pc, std::vector<uint32_t> &reg, bool& delay)
+{
+    if(!delay)
+    {
+        delay = true;
+        if((reg[rs] >> 31) == 1 | reg[rs] == 0)//check msb and not 0
+        {
+          sign_imm = (sign_imm << 2);
+          int sign_imm_int = sign_imm;
+          tmp_pc = pc + 4;
+          tmp_pc += sign_imm_int;
+        }
+        else
+        {
+          tmp_pc = pc + 8;
+        }
+        pc = pc + 8; //
+    }
+    else
+    {
+        delay = false;
+        pc = tmp_pc -4;
+    }
+}
+
+void simulator::bltz(int rs, uint32_t sign_imm, uint32_t& pc, uint32_t& tmp_pc,  std::vector<uint32_t> &reg, bool& delay)
+{
+    if(!delay)
+    {
+        delay = true;
+        if((reg[rs] >> 31) == 1)
+        {
+          sign_imm = (sign_imm << 2);
+          int sign_imm_int = sign_imm;
+          tmp_pc = pc + 4;
+          tmp_pc += sign_imm_int;
+        }
+        else
+        {
+          tmp_pc = pc + 8;
+        }
+
+        pc = pc + 8; //
+    }
+    else
+    {
+        delay = false;
+        pc = tmp_pc -4;
+    }
+}
+
+void simulator::bltzal(int rs, uint32_t sign_imm, uint32_t& pc, uint32_t& tmp_pc, std::vector<uint32_t> &reg, bool& delay)
+{
+    reg[31] = pc + 8;
+    if(!delay)
+    {
+        delay = true;
+        if((reg[rs] >> 31) == 1)
+        {
+          sign_imm = (sign_imm << 2);
+          int sign_imm_int = sign_imm;
+          tmp_pc = pc + 4;
+          tmp_pc += sign_imm_int;
+        }
+        else
+        {
+          tmp_pc = pc + 8;
+        }
+
+        pc = pc + 8; //
+    }
+    else
+    {
+        delay = false;
+        pc = tmp_pc -4;
+    }
+}
+
+void simulator::bne(int rt, int rs, uint32_t sign_imm, uint32_t& pc, uint32_t& tmp_pc, std::vector<uint32_t> &reg, bool& delay)
+{
     if(!delay)//first enter jr
     {
+      if(reg[rt] != reg[rs])
+      {
+        sign_imm = (sign_imm << 2);
+        int sign_imm_int = sign_imm;
+        tmp_pc = pc + 4;
+        tmp_pc += sign_imm_int;
+      }
         delay = true;
         pc = pc + 8;
     }
     else
     {
         delay = false;
-        if (reg[rt] != reg[rs])
-        {pc = temp_pc - 4;}
-        else
-        {pc = pc + 4;}
+        pc = tmp_pc -4;
     }
 }
 
-void simulator::div(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg)
+void simulator::div_f(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg)
 {
     int tmp_rs = reg[rs] | 0b0;
     int tmp_rt = reg[rt] | 0b0;//load exact bits
