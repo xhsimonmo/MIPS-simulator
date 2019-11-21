@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <bitset>
+#include <sstream>
 #include "simulator.hpp"
 
 #define IMEM_OFFSET 0x10000000//head of instruction memory
@@ -86,7 +87,7 @@ int main(int argc, char *argv[])
                 instruction = instruction  << 8;
             }
         }//load char into 32 bit instruction
-         std::cerr << std::hex << instruction << '\n';
+         std::cerr << "--------------------        instruction is  " <<std::hex << instruction << '\n';
          reg[0] = 0; //keep reg 0 const to 0 in every iteration
         s.run(instruction, pc,tmp_pc, reg, reg_lo, reg_hi, delay, dmem, imem);
 
@@ -105,7 +106,7 @@ int main(int argc, char *argv[])
 
    for (int i = 0; i < 32; i++)
    {
-       std::cerr << "Register " << i << " has value " << reg[i] << std::endl;
+       std::cerr << "Register " << i << " has value " << std::dec <<reg[i] << std::endl;
    }
    std::cerr << "hi is " << reg_hi <<'\n';
    std::cerr << "lo is " << reg_lo <<'\n';
@@ -115,13 +116,12 @@ int main(int argc, char *argv[])
     if (pc == IMEM_OFFSET + size_infile || pc == 0)
     {
         pc = 0;//set pc to zero
-        std::cerr << "entering exit place: " << reg[2] << std::endl;
-        std::cout  << '\n';
-        std::exit (reg[2] & 0xFF);//no more instructions; return code given by low 8-bits of register 2
+        std::cerr << "entering exit place with R2 value: "  <<reg[2] << std::endl;
+        // std::cerr << "exitcode is " << exitcode <<'\n';
+        std::exit (reg[2] & 0xff);//no more instructions; return code given by low 8-bits of register 2
     }
     else
     {
         std::exit(-11);//pc try to access out of range
     }
-
 }
