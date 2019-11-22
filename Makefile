@@ -38,9 +38,8 @@ MIPS_LDFLAGS = -nostdlib -Wl,-melf32btsmip -march=mips1 -nostartfiles -mno-check
 # @basename takes away the extension
 
 assem_address = ./src/assemblycode
-bin_address = ./src/genbinary
-disassem_address = ./src/disassembly
-buffer_address = ./src/buffer
+bin_address = ./test/temp/genbinary
+buffer_address = ./test/temp/buffer
 
 testnames = $(basename $(wildcard $(assem_address)/*.s)) # Extract every name of assembly test code for later use#
 
