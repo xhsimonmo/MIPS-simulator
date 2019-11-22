@@ -1,45 +1,48 @@
 #!/bin/bash
 
+rm -f ./test/output/test_result.csv
 cat ./src/test.csv | while IFS="," read -r fileName instrName expRet stdin expOut outMes; do
 
     result=Pass
 
+    echo $stdin
+
     #convert from MIPS to binary
     #testing simulator here...
 
-    $1 src/genbinary/"$fileName.mips.bin"
+    stdout=$(echo $stdin | xxd -r -p |  $1 test/temp/genbinary/"$fileName.mips.bin" 2> test/output/log/$fileName.log | xxd -ps | xargs printf "%s"; exit ${PIPESTATUS[2]})
 
+    # $1 src/genbinary/"$fileName.mips.bin"
     retcode=$?
+    unset Mes2
 
-    if [ ! -n "stdin" ];
-    then
-        echo "stdin here"
-    #convert stdin from hex to binary
-        stdout=$(echo $stdin | xxd -r -p)
-    fi
-
-    echo "retcode = $retcode"
+    # if [ ! -n "stdin" ];
+    # then
+    #     echo "stdin here"
+    # #convert stdin from hex to binary
+    #     stdout=$(echo $stdin | xxd -r -p)
+    # fi
 
     #catch output from last command and pass it to another command
     # stdout=$(!!)
 
     if [ "$retcode" != "$expRet" ];
     then
-        echo "retcode here is"
-        echo $retcode
         Mes2="Expected retcode $expRet but get $retcode"
         result=Fail
     fi
 
-    if [ "$expOut" != "null" -a "$stdout" != "$expOut" ];
+    if [ ! -n "expOut" -a "$stdout" != "$expOut" ];
     then
-        echo "stdout here"
         Mes2="Expected cout $expRet but get $retcode"
         result=Fail
     fi
 
-    # outMes=${outMes//$'\r'/}
+    touch ./test/output/test_result.csv
 
+    printf '%s\n' "$fileName,$instrName,$result,"hair_loss_therapy",$outMes,$Mes2" >> ./test/output/test_result.csv
+    # ls -1 | awk 'print "$fileName, $instrName, $result, "hair_loss_therapy", $outMes, $Mes2"' > ./src/result.csv
+    # printf '%s\n' "$fileName,$instrName,$result,"hair_loss_therapy",$outMes,$Mes2" | paste -sd ',' > ./src/result.csv
     echo "$fileName,$instrName,$result,"hair_loss_therapy""
     echo "$outMes"
     echo "$Mes2"
