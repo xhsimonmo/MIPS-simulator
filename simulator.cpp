@@ -230,7 +230,7 @@ void simulator::R_type(uint32_t instruction, uint32_t &pc, uint32_t& tmp_pc, std
     }
 }
 
-int32_t simulator::get_char()
+int simulator::get_char()
 {
   // int input;
   // std::cin >> input;
@@ -244,22 +244,24 @@ int32_t simulator::get_char()
   // }
   // input = input & 0xff;//"extend 8 bit to 32 bit"; keep upper 24 bits zeroes
   // return input;
- int32_t input = std::getchar();
+ int input = std::getchar();
  if(input == EOF)
  {
    return(-1);
+   std::cerr << "getchar error" << '\n';
  }
  else
  {
    return input;
+   std::cerr << "getchar gets " << input <<'\n';
  }
- std::exit(-21);// IO error
+ // std::exit(-21);// IO error
 };
 
 void simulator::putchar(uint32_t data_write)
 {
   std::putchar(data_write);//output the WORD as bits;
-  std::exit(-21);// IO error
+  // std::exit(-21);// IO error
 }
 
 
@@ -673,7 +675,7 @@ void simulator::lb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, 
   std::cerr << "address is " << std::hex << address <<'\n';
   //std::cout << std::hex<<address << '\n';
   if((address >= DMEM_OFFSET and address < DMEM_OFFSET + DMEM_LENGTH) | (address >= IMEM_OFFSET and address < IMEM_OFFSET + IMEM_OFFSET))
-  {
+  { std::cerr << "get from dmem and imem" << '\n';
     if(address >= DMEM_OFFSET and address < DMEM_OFFSET + DMEM_LENGTH)
     {
       uint32_t word = ((dmem[address - DMEM_OFFSET] << 24)>>24);
@@ -715,9 +717,10 @@ void simulator::lb(int rs,int rt, int32_t sign_imm, std::vector<uint32_t> &reg, 
 
   }
   else{
-
-    if(address >= ADDR_GETC and address < ADDR_GETC + 4){
+    std::cerr << "enter getchar" << '\n';
+    if(address == ADDR_GETC){
       reg[rt] = get_char();
+      std::cerr << "after getchar" << '\n';
     //  std::cout << "register " << rt <<" is "<< reg[rt] <<'\n';
     }
     else{

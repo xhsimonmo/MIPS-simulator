@@ -124,4 +124,5 @@ int main(int argc, char *argv[])
     {
         std::exit(-11);//pc try to access out of range
     }
+    std::exit(-20);// internal error
 }
