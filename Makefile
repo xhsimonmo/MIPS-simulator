@@ -38,17 +38,15 @@ MIPS_LDFLAGS = -nostdlib -Wl,-melf32btsmip -march=mips1 -nostartfiles -mno-check
 # @basename takes away the extension
 
 assem_address = ./src/assemblycode
-bin_address = ./src/genbinary
-disassem_address = ./src/disassembly
-buffer_address = ./src/buffer
+bin_address = ./test/temp/genbinary
+buffer_address = ./test/temp/buffer
 
 testnames = $(basename $(wildcard $(assem_address)/*.s)) # Extract every name of assembly test code for later use#
 
-.NOTPARALLEL: $(testnames)
-
+# .NOTPARALLEL: $(testnames)
 emm:
-	   @echo $(testnames)
-     #@echo "hello!
+	echo $(testnames)
+
 
 .PHONY testbench: $(testnames) #
 
@@ -59,14 +57,14 @@ testbench:
 # 	$(MIPS_CC) $(MIPS_CPPFLAGS) $(MIPS_LDFLAGS) -T linker.ld $@.mips.o -o $@.mips.elf # to elf
 # 	$(MIPS_OBJCOPY) -O binary --only-section=.text $@.mips.elf $(bin_address)/$(notdir $@).mips.bin
 $(testnames):
-	$(MIPS_CC) $(MIPS_CPPFLAGS) -c $@.s -o $(buffer_address)/$(notdir $@).mips.o #assembly file to object infile
-	$(MIPS_CC) $(MIPS_CPPFLAGS) $(MIPS_LDFLAGS) -T linker.ld $(buffer_address)/$(notdir $@).mips.o -o $(buffer_address)/$(notdir $@).mips.elf # to elf
-	$(MIPS_OBJCOPY) -O binary --only-section=.text $(buffer_address)/$(notdir $@).mips.elf $(bin_address)/$(notdir $@).mips.bin
+	@$(MIPS_CC) $(MIPS_CPPFLAGS) -c $@.s -o $(buffer_address)/$(notdir $@).mips.o #assembly file to object infile
+	@$(MIPS_CC) $(MIPS_CPPFLAGS) $(MIPS_LDFLAGS) -T linker.ld $(buffer_address)/$(notdir $@).mips.o -o $(buffer_address)/$(notdir $@).mips.elf # to elf
+	@$(MIPS_OBJCOPY) -O binary --only-section=.text $(buffer_address)/$(notdir $@).mips.elf $(bin_address)/$(notdir $@).mips.bin
 	# $(MIPS_OBJDUMP) -j .text -D $@.mips.elf > $(disassem_address)/$(notdir $@).mips.disassembly.s
 
 
 
-
+# for simulator building
 
 
 simulator: simulator.o main.o

@@ -253,12 +253,13 @@ int32_t simulator::get_char()
  {
    return input;
  }
+ std::exit(-21);// IO error
 };
 
 void simulator::putchar(uint32_t data_write)
 {
   std::putchar(data_write);//output the WORD as bits;
-                                  // other size of characters(not starting at 0x30000004) is undefined behaviour, returns 0
+  std::exit(-21);// IO error
 }
 
 
@@ -627,8 +628,10 @@ void simulator::bne(int rt, int rs, int32_t sign_imm, uint32_t& pc, uint32_t& tm
         tmp_pc = pc + 4;
         tmp_pc += sign_imm;
       }
+      else{
         delay = true;
         pc = pc + 8;
+      }
     }
     else
     {
@@ -654,7 +657,7 @@ void simulator::div_f(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::v
 void simulator::divu(int rt, int rs, uint32_t &reg_lo, uint32_t &reg_hi, std::vector<uint32_t> &reg)
 {
   std::cerr << "DIVU" << '\n';
-    if (reg[rs] != 0)
+    if (reg[rt] != 0)
     {
         reg_lo = reg[rs]/reg[rt];
         reg_hi = reg[rs]%reg[rt];
